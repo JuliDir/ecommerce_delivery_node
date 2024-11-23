@@ -1,0 +1,537 @@
+openapi: 3.0.0
+info:
+  title: Pricing API
+  version: 1.0.0
+  description: |
+    El microservicio de **Pricing** gestiona los precios de un catálogo, genera políticas de descuentos, maneja precios especiales, cupones y descuentos, y permite consultar precios para el proceso de compras. También notifica cambios de precios de forma asíncrona a otros servicios, como **Stats**.
+paths:
+  '/test':
+    get:
+      tags:
+        - Deploy
+      summary: Endpoint para testear funcionamiento de api.
+      description: Endpoint para testear funcionamiento de api..
+      operationId: deploy
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /prices:
+    post:
+      tags:
+        - Price
+      summary: Crear Precio de Producto
+      description: Crea el precio de un producto.
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                article_id:
+                  type: string
+                price:
+                  type: number
+                  format: float
+      responses:
+        '200':
+          description: Precio actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Price'
+  /prices/{article_id}:
+    get:
+      tags:
+        - Price
+      summary: Consultar Precio de Producto
+      description: Devuelve el precio actual de un producto específico.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del producto cuyo precio se consulta.
+      responses:
+        '200':
+          description: Precio del producto encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  price:
+                    type: number
+                    format: float
+                  discounts:
+                    type: array
+                    items:
+                      type: string
+        '404':
+          description: Producto no encontrado.
+
+  /discounts:
+    get:
+      tags:
+        - Discount
+      summary: Obtener todos los descuentos
+      description: Obtener todos los descuentos.
+      security:
+        - bearerAuth: []
+
+      responses:
+        '200':
+          description: Descuento creado correctamente.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type:
+                  $ref: '#/components/schemas/Discount'
+    post:
+      tags:
+        - Discount
+      summary: Crear Política de Descuento
+      description: Crea una nueva política de descuento.
+      security:
+        - bearerAuth: []
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                value:
+                  type: number
+                  format: float
+                active:
+                  type: boolean
+                start_date:
+                  type: string
+                  format: date-time
+                end_date:
+                  type: string
+                  format: date-time
+                article_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Descuento creado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  discount_id:
+                    type: string
+  /discounts/{discount_id}:
+    put:
+      tags:
+        - Discount
+      summary: Actualizar Política de Descuento
+      description: Actualiza una nueva política de descuento.
+      security:
+        - bearerAuth: []
+
+      parameters:
+        - name: discount_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de la política de descuento que se va a actualizar.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                type:
+                  type: string
+                value:
+                  type: number
+                  format: float
+                active:
+                  type: boolean
+                start_date:
+                  type: string
+                  format: date-time
+                end_date:
+                  type: string
+                  format: date-time
+                article_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Descuento actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  discount_id:
+                    type: string
+
+  /coupons:
+    get:
+      tags:
+        - Coupons
+      summary: Obtener todos los cupones
+      description: Obtener todos los cupones.
+      security:
+        - bearerAuth: []
+
+      responses:
+        '200':
+          description: Cupones.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type:
+                  $ref: '#/components/schemas/Coupon'
+    post:
+      tags:
+        - Coupons
+      summary: Crear Cupón
+      description: Crea un nuevo cupón.
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                discount_type:
+                  type: string
+                discount_value:
+                  type: number
+                  format: float
+                applicable_products:
+                  type: array
+                  items:
+                    type: string
+                minimum_purchase:
+                  type: number
+                  format: float
+                uses_limit:
+                  type: number
+                active:
+                  type: boolean
+                start_date:
+                  type: string
+                  format: date-time
+                end_date:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Cupón creado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  coupon_id:
+                    type: string
+  /coupons/{coupon_id}:
+    put:
+      tags:
+        - Coupons
+      summary: Modificar Cupón
+      description: Modifica un cupón existente.
+      security:
+        - bearerAuth: []
+
+      parameters:
+        - name: coupon_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del cupón a modificar.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                discount_type:
+                  type: string
+                discount_value:
+                  type: number
+                  format: float
+                applicable_products:
+                  type: array
+                  items:
+                    type: string
+                minimum_purchase:
+                  type: number
+                  format: float
+                uses_limit:
+                  type: number
+                active:
+                  type: boolean
+                start_date:
+                  type: string
+                  format: date-time
+                end_date:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Cupón actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  coupon_id:
+                    type: string
+        '404':
+          description: Cupón no encontrado.
+  /prices/coupon:
+    post:
+      tags:
+        - Price
+      summary: Aplicar Cupón
+      description: Aplica un cupón a un conjunto de productos.
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                article_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Cupón aplicado correctamente.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  applied_discount:
+                    type: number
+                    format: float
+                  final_prices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        article_id:
+                          type: string
+                        final_price:
+                          type: number
+                          format: float
+servers:
+  - url: '{protocol}://{environment}/api/v1'
+    description: Local
+    variables:
+      protocol:
+        enum:
+          - http
+          - https
+        default: http
+      environment:
+        enum:
+          - localhost:8080
+        default: localhost:8080
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorItem'
+        status:
+          type: number
+          example: 400
+    ErrorItem:
+      type: object
+      properties:
+        key:
+          type: string
+          example: app.login.invalidPassword
+        message:
+          type: string
+          example: Invalid user or password
+    TestResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: API running!
+        status:
+          type: number
+          example: 200
+    StandardResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Successful operation
+        status:
+          type: number
+          example: 200
+    Price:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "67366854ec21ade4efab8202"
+          description: Identificador único del precio
+        article_id:
+          type: string
+          example: "2"
+          description: ID del producto asociado a este precio
+        price:
+          type: number
+          example: 9890
+          description: Precio del producto en el período especificado
+        start_date:
+          type: string
+          format: date-time
+          example: "2024-11-10T21:07:49.125Z"
+          description: Fecha de inicio de este precio
+        end_date:
+          type: string
+          format: date-time
+          example: "2024-11-16T21:07:49.125Z"
+          description: Fecha de fin de este precio
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-11-14T21:15:00.294Z"
+          description: Fecha de creación del documento
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-11-14T21:15:00.294Z"
+          description: Fecha de última actualización del documento
+        __v:
+          type: integer
+          example: 0
+          description: Versión del documento para control de versiones
+    Discount:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        value:
+          type: number
+          format: float
+        active:
+          type: boolean
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        article_ids:
+          type: array
+          items:
+            type: string
+    Coupon:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        discount_type:
+          type: string
+        discount_value:
+          type: number
+          format: float
+        applicable_products:
+          type: array
+          items:
+            type: string
+        minimum_purchase:
+          type: number
+          format: float
+        uses_limit:
+          type: number
+  responses:
+    Success:
+      description: Successful operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StandardResponse'
+    Unauthorized:
+      description: Access token is missing or is invalid
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalServerError:
+      description: Internal server error
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key

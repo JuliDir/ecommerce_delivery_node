@@ -1,0 +1,35 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push Docker image
+        run: |
+          # Convert repository name to lowercase
+          REPO_NAME=${{ github.repository }}
+          LOWERCASE_REPO_NAME=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
+          
+          RELEASE_IMAGE="ghcr.io/$LOWERCASE_REPO_NAME:latest"
+          TAG_IMAGE="ghcr.io/$LOWERCASE_REPO_NAME:${{ github.ref_name }}"
+
+          echo "RELEASE_IMAGE=$RELEASE_IMAGE"
+          echo "TAG_IMAGE=$TAG_IMAGE"
+
+          docker build --pull -t $RELEASE_IMAGE .
+          docker push $RELEASE_IMAGE
