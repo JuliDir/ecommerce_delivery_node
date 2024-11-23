@@ -1,7 +1,7 @@
 {
-  "name": "pricing-api",
+  "name": "ecommerce-delivery-node",
   "version": "1.0.0",
-  "description": "Pricing API",
+  "description": "E-commerce delivery microservice for an ecommerce",
   "scripts": {
     "start": "ts-node-dev --files --inspect=0.0.0.0:7100 -r tsconfig-paths/register --exit-child --tree-kill --respawn ./src",
     "formar": "prettier --write .",

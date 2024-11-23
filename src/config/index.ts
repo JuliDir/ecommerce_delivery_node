@@ -13,9 +13,10 @@ export default {
   DIR_ERRORS: 'src/config/errors/error.yml',
   SECRET_KEY: process.env.SECRET_KEY || 'secret',
   API_KEY: process.env.API_KEY,
-  MONGO_URL: process.env.MONGO_URL,
+  MONGO_URL: process.env.MONGO_URL || '',
   SECURITY_URL: process.env.SECURITY_URL || '',
   CURRENT_USER: process.env.CURRENT_USER || '',
   RABBIT_URL: process.env.RABBIT_URL || '',
-  QUEUE_STATS: process.env.QUEUE_STATS || '',
+  QUEUE_ORDERS_REQUEST: process.env.QUEUE_ORDERS_REQUEST || '',
+  QUEUE_DELIVERY_NOTIFICATIONS: process.env.QUEUE_DELIVERY_NOTIFICATIONS || '',
 };

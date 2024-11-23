@@ -10,7 +10,7 @@ import config from './config';
 import handle from './config/errors/error-handler';
 import router from './routes';
 import logging from './utils/logger';
-import DatabaseConnection from '@config/pricing-db';
+import DatabaseConnection from '@config/delivery-db';
 
 const app = express();
 
@@ -61,7 +61,7 @@ if (config.NODE_ENV !== 'production') {
 DatabaseConnection.getInstance();
 
 // API routes prefix
-app.use('/api/v1', router);
+app.use('/v1', router);
 
 app.use(
   errorLogger({

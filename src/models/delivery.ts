@@ -4,9 +4,9 @@ import { DeliveryDocument } from './entities/delivery';
 export const DeliverySchema = new Schema(
   {
     status: { type: String, required: true, enum: ['IN_PREPARATION', 'IN_TRANSITION', 'NEAR_DESTIN','DELIVERED', 'FAILED'] },
-    order_id: { type: String, required: true },
-    shipping_address: { type: String, required: true },
-    tracking_number: { type: String, required: true },
+    orderId: { type: String, required: true },
+    shippingAddress: { type: String, required: true },
+    trackingNumber: { type: String, required: true },
   },
   {
     collection: 'deliveries',

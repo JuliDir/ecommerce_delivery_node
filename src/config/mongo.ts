@@ -9,10 +9,10 @@ class MongoDB {
     family: 4, // Use IPv4, skip trying IPv6
   };
 
-  constructor(url = 'mongodb://localhost:27017/product-db') {
+  constructor(url: string) {
     try{
       mongoose.connect(url, this.options);
-      logger.info("Database connect")
+      logger.info("Database connect");
     }
     catch(err) {
       logger.error(err)

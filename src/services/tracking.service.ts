@@ -17,20 +17,20 @@ class TrackingService {
     const delivery = await deliveryService.getDeliveryById(deliveryId);
     const trackings = await trackingRepository.getTrackingsByDeliveryIdSortByTimestampAsc(deliveryId);
     return {
-      delivery_id: deliveryId,
-      tracking_number: delivery.tracking_number,
-      tracking_details: trackings
+      deliveryId,
+      trackingNumber: delivery.trackingNumber,
+      trackingDetails: trackings
     };
   }
 
   // CU Actualización de tracking de una entrega
   async updateTracking(payload: Tracking) {
-    const delivery = await deliveryService.getDeliveryById(payload.delivery_id);
+    const delivery = await deliveryService.getDeliveryById(payload.deliveryId);
     if (!delivery) {
       throw new CustomError('Delivery not found', 404);
     }
 
-    const trackings = await trackingRepository.getTrackingsByDeliveryIdSortByTimestampAsc(payload.delivery_id);
+    const trackings = await trackingRepository.getTrackingsByDeliveryIdSortByTimestampAsc(payload.deliveryId);
     const lastTracking = trackings[trackings.length - 1];
 
     switch (lastTracking.status) {

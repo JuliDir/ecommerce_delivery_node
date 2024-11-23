@@ -14,8 +14,8 @@ class TrackingRepository {
   //Se busca el tracking donde su atributo timestamp sea mayor al atributo updatedAt de el Delivery, es decir, el último estado.
   async getLastTrackingByDelivery(delivery: DeliveryDocument) {
     return TrackingModel.findOne({
-      delivery_id: delivery._id,
-      timestamp: { $gt: delivery.updated_at }
+      deliveryId: delivery._id,
+      timestamp: { $gte: delivery.updatedAt }
     });
   }
 

@@ -3,6 +3,8 @@ import deliveryRepository from '@repositories/delivery.repository';
 import trackingService from './tracking.service';
 import { Rabbit } from 'src/rabbitmq/rabbit.server';
 import { Status } from '@dtos/enum/status.enum';
+import { DeliveryDocument } from '@models/entities/delivery';
+import config from '@config/index';
 
 class DeliveryService {
 
@@ -12,24 +14,30 @@ class DeliveryService {
       throw new CustomError('Shipping address is required', 400);
     }
 
-    const trackingNumber = `TN-${orderId}`;
     const delivery = await deliveryRepository.create({
-      order_id: orderId,
-      shipping_address: shippingAddress,
-      tracking_number: trackingNumber,
-      created_at: new Date(),
+      orderId,
+      shippingAddress,
+      trackingNumber: `TN-${orderId}`,
+      createdAt: new Date(),
       status: Status.IN_PREPARATION
-    }) as { _id: string };
+    }) as DeliveryDocument;
 
     await trackingService.create({
-      delivery_id: delivery._id,
-      carrier_id: null,
+      deliveryId: delivery._id as string,
+      carrierId: null,
       status: Status.IN_PREPARATION,
       location: { latitude: -32.889458, longitude: -68.845838 },
       timestamp: new Date()
     });
 
-    await this.updateDeliveryProjection(delivery._id);
+    await this.updateDeliveryProjection(delivery._id as string);
+
+    // Notificar el inicio de la entrega a la cola 'delivery_status_notifications'
+    Rabbit.getInstance().sendMessage({
+      orderId: delivery.orderId,
+      status: Status.IN_PREPARATION,  
+      message: 'Delivery started successfully'
+    }, config.QUEUE_DELIVERY_NOTIFICATIONS);
 
     return delivery;
   }
@@ -76,9 +84,9 @@ class DeliveryService {
     }
 
     const tracking = {
-      delivery_id: deliveryId,
-      carrier_id: 'user_id',
-      status: Status.DELIVERED,
+      deliveryId,
+      carrierId: 'user_id',
+      status: Status.COMPLETED,
       location,
       timestamp: new Date()
     };
@@ -86,7 +94,7 @@ class DeliveryService {
     await trackingService.create(tracking);
     await this.updateDeliveryProjection(deliveryId);
 
-    await Rabbit.getInstance().sendMessage({ orderId: delivery.order_id }, 'orders');
+    await Rabbit.getInstance().sendMessage({ orderId: delivery.orderId }, 'orders');
 
     return tracking;
   }
@@ -104,8 +112,8 @@ class DeliveryService {
     }
 
     const tracking = {
-      delivery_id: deliveryId,
-      carrier_id: 'user_id',
+      deliveryId,
+      carrierId: 'user_id',
       status: Status.FAILED,
       location,
       timestamp: new Date()
@@ -114,7 +122,7 @@ class DeliveryService {
     await trackingService.create(tracking);
     await this.updateDeliveryProjection(deliveryId);
 
-    await Rabbit.getInstance().sendMessage({ orderId: delivery.order_id }, 'orders');
+    await Rabbit.getInstance().sendMessage({ orderId: delivery.orderId }, 'orders');
 
     return tracking;
   }

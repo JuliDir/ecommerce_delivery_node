@@ -9,9 +9,9 @@ export interface Location {
 }
 
 export interface Tracking {
-  delivery_id: string;
+  deliveryId: string;
   status: Status;
   location?: Location;
-  carrier_id?: string | null;
+  carrierId?: string | null;
   timestamp: Date;
 }
