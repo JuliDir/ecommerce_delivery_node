@@ -1,12 +1,12 @@
-# Pricing-Api
+# Ecommerce-delivery-node
 
-Bienvenido al proyecto **Pricing-Api**.
+Bienvenido al proyecto **Ecommerce-delivery-node**.
 
 ## Autor
-- 👤 **Carlos Alejandro Moreno**
-- 🆔 **Legajo:** 47840
-- 📧 **Correo:** carlitosmoreno12@hotmail.com
-- 🔗 [LinkedIn](https://www.linkedin.com/in/carlos-alejandro-moreno/)
+- 👤 **Julián Gabriel Di Rocco**
+- 🆔 **Legajo:** 47766
+- 📧 **Correo:** jgdirocco@gmail.com
+- 🔗 [LinkedIn](https://www.linkedin.com/in/juli%C3%A1n-di-rocco-1b5a89257/)
 
 ## Arquitectura
 
@@ -32,8 +32,8 @@ Podes ejecutar el proyecto clonando el proyecto o ejecutandolo en docker:
 1. **Clona el repositorio:**
 
    ```bash
-   git clone https://github.com/CharlyMoreno/pricing-api-microservicios
-   cd pricing-api-microservicios
+   git clone https://github.com/JuliDir/ecommerce_delivery_node.git
+   cd ecommerce_delivery_node
    ```
 
 2. **Instala las dependencias:**
@@ -61,8 +61,8 @@ Para ejecutar el proyecto en modo Docker, sigue estos pasos:
 1. **Clona el repositorio:**
 
    ```bash
-   git clone https://github.com/CharlyMoreno/pricing-api-microservicios
-   cd pricing-api-microservicios
+   git clone https://github.com/JuliDir/ecommerce_delivery_node.git
+   cd ecommerce_delivery_node
    ```
 
 2. **Construye y ejecuta los contenedores:**
