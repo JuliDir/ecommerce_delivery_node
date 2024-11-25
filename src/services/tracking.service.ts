@@ -5,6 +5,7 @@ import { DeliveryDTO } from '@dtos/delivery.dto';
 import { Tracking } from '@models/entities/tracking';
 import { Status } from '@dtos/enum/status.enum';
 import { DeliveryDocument } from '@models/entities/delivery';
+import { CreateTracking } from '@dtos/tracking.dto';
 
 class TrackingService {
 
@@ -24,31 +25,57 @@ class TrackingService {
   }
 
   // CU Actualización de tracking de una entrega
-  async updateTracking(payload: Tracking) {
+  async updateTracking(payload: CreateTracking, carrierId: string) {
+
+    if (!payload.deliveryId) throw new CustomError('Delivery ID is required', 400);
     const delivery = await deliveryService.getDeliveryById(payload.deliveryId);
-    if (!delivery) {
-      throw new CustomError('Delivery not found', 404);
+
+    if (!payload.location) {
+      throw new CustomError('Location is required', 400);
+    } else if (!payload.location.latitude || !payload.location.longitude) {
+      throw new CustomError('Latitude and longitude are required', 400);
     }
 
-    const trackings = await trackingRepository.getTrackingsByDeliveryIdSortByTimestampAsc(payload.deliveryId);
-    const lastTracking = trackings[trackings.length - 1];
+    if (!payload.status) throw new CustomError('Status is required', 400);
 
-    switch (lastTracking.status) {
+    // Si encuentro el lastTracking es porque el delivery no esta actualizado, sino, el delivery esta actualizado y tiene el ultimo status.
+    let lastStatus = null;
+    const lastTracking = await trackingRepository.getLastTrackingByDelivery(delivery);
+    if (lastTracking) {
+      lastStatus = lastTracking.status;
+    } else {
+      lastStatus = delivery.status;
+    }
+
+    switch (delivery.status) {
       case Status.IN_PREPARATION:
         if (payload.status === Status.IN_TRANSIT) {
-          return trackingRepository.create(payload);
+          break;
         } else {
           throw new CustomError('Invalid status, the next status must be IN_TRANSIT', 400);
         }
       case Status.IN_TRANSIT:
         if (payload.status === Status.IN_TRANSIT || payload.status === Status.NEAR_DESTIN) {
-          return trackingRepository.create(payload);
+          break;
         } else {
           throw new CustomError('Invalid status, the next status must be IN_TRANSIT or NEAR_DESTIN', 400);
         }
       default:
-        throw new CustomError('Invalid status', 400);
+        throw new CustomError('Invalid status, the delivery must be in IN_PREPARATION or IN_TRANSIT status', 400);
     }
+
+    // Creo el nuevo tracking
+    const newTracking = trackingRepository.create({
+      deliveryId: payload.deliveryId,
+      carrierId: carrierId,
+      status: Status[payload.status as keyof typeof Status],
+      location: payload.location,
+      timestamp: new Date()
+    });
+
+    // Actualizo la proyección del delivery
+    deliveryService.updateDeliveryProjection(payload.deliveryId);
+    return newTracking;
   }
 
   async getLastTrackingByDelivery(delivery: DeliveryDocument) {

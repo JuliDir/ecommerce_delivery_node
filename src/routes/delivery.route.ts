@@ -10,17 +10,17 @@ class DeliveryRoute {
   }
 
   createRoutes(): void {
-    this.router.get('/deliveries/:deliveryId', authMiddleware, this.getDelivery.bind(this));
+    this.router.get('/deliveries/:deliveryIdOrTrackingNumber', authMiddleware, this.getDelivery.bind(this));
     this.router.put('/deliveries/:deliveryId/complete', authMiddleware, this.completeDelivery.bind(this));
     this.router.put('/deliveries/:deliveryId/failed', authMiddleware, this.failDelivery.bind(this));
   }
 
   private getDelivery(req: Request, res: Response, next: NextFunction) {
     const {
-      params: { deliveryId },
+      params: { deliveryIdOrTrackingNumber },
     } = req as any;
     deliveryService
-      .getDeliveryById(deliveryId)
+      .getDeliveryByIdOrTrackingNumber(deliveryIdOrTrackingNumber)
       .then((response) => res.json(response))
       .catch((err) => next(err));
   }
@@ -30,8 +30,10 @@ class DeliveryRoute {
       params: { deliveryId },
     } = req as any;
     const { location } = req.body;
+    const carrierId = req.user.id;
+
     deliveryService
-      .completeDelivery(deliveryId, location)
+      .completeDelivery(deliveryId, location, carrierId)
       .then((response) => res.json(response))
       .catch((err) => next(err));
   }
@@ -41,8 +43,10 @@ class DeliveryRoute {
       params: { deliveryId },
     } = req as any;
     const { location } = req.body;
+    const carrierId = req.user.id;
+
     deliveryService
-      .failDelivery(deliveryId, location)
+      .failDelivery(deliveryId, location, carrierId)
       .then((response) => res.json(response))
       .catch((err) => next(err));
   }

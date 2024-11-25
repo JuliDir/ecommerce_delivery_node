@@ -1,164 +1,376 @@
-# Pricing-Api
+## Microservicio de Delivery
 
-## Descripción
+### Casos de uso
 
-El microservicio de **Pricing** gestiona los precios de un catálogo, genera políticas de descuentos, maneja precios especiales, cupones y descuentos, y permite consultar precios para el proceso de compras. También notifica cambios de precios de forma asíncrona a otros servicios, como **Stats**.
+#### CU: Actualizar proyección de un Delivery
+- **Precondición**: El Delivery debe existir
+- **Camino normal**:
+  - Se busca el Delivery y el tracking asociado a la misma (historico de estados)
+  - Se busca el tracking donde su atributo timestamp sea mayor al atributo updatedAt de el Delivery, es decir, el último estado.
+  - Se actualiza la proyección de el Delivery actualizando: 
+    - status: status del tracking encontrado
+    - updatedAt: fecha actual
+- **Caminos alternativos**:
+  - Si no existe el Delivery entonces se responde con un error.
 
-## Casos de Uso
-
-#### 1. **Mantenimiento de Cupones**
-- **Actor:** Usuario.
-- **Descripción:** Permite a los administradores crear, actualizar y consultar cupones en el sistema.
-  - **Validaciones:**
-    1. **Creación de cupones:**
-       - Verificación de la existencia de un cupón con el mismo código. Si ya existe, se lanza un error con el mensaje "Coupon already exists with this code.".
-       - Validación de los campos `discount_type` y `discount_value` para asegurar que el tipo de descuento y el valor del descuento sean correctos.
-    2. **Actualización de cupones:**
-       - Verificación de que el cupón a actualizar exista en el sistema. Si no se encuentra, se lanza un error con el mensaje "Coupon not found".
-    3. **Consulta de cupones:**
-       - Recupera todos los cupones existentes sin validaciones adicionales.
-
-#### 2. **Aplicación de Cupones en la Compra**
-- **Actor:** Usuario.
-- **Descripción:** Permite a los clientes aplicar un cupón a una compra y calcular el precio total con el descuento aplicado.
-  - **Validaciones:**
-    1. **Verificación de validez del cupón:**
-       - El sistema valida que el cupón esté activo y dentro del rango de fechas permitido. Si no es válido, se lanza un error con el mensaje "Invalid or inactive coupon or outside the date range".
-    2. **Verificación de productos aplicables:**
-       - Se verifica que los productos seleccionados sean válidos para el cupón. Si uno o más productos no son aplicables, se lanza un error con el mensaje "Coupon is not valid for one or more selected products".
-    3. **Verificación de monto mínimo de compra:**
-       - Se valida que el total de la compra con descuento sea igual o superior al monto mínimo especificado en el cupón. Si no lo es, se lanza un error con el mensaje "Total purchase amount is below the minimum required".
-    4. **Verificación de límite de uso del cupón:**
-       - Se verifica si el cupón ha alcanzado su límite de usos. Si el límite ha sido alcanzado, se lanza un error con el mensaje "Coupon usage limit exceeded".
-    5. **Cálculo del descuento:**
-       - Según el tipo de descuento (`PERCENTAGE` o `FIXED`), se calcula el descuento aplicable y se devuelve el total con el descuento.
-
-#### 3. **Mantenimiento de Descuentos**
-- **Actor:** Usuario.
-- **Descripción:** Permite a los administradores crear, actualizar y consultar descuentos que se aplican a productos o categorías específicas.
-  - **Validaciones:**
-    1. **Creación de descuentos:**
-       - El sistema permite la creación de descuentos sin validaciones adicionales específicas en este proceso.
-    2. **Actualización de descuentos:**
-       - Verificación de la existencia del descuento a actualizar. Si no se encuentra, se lanza un error con el mensaje "Discount not found".
-    3. **Aplicación de descuento:**
-       - Según el tipo de descuento (`PERCENTAGE` o `FIXED`), se calcula el descuento aplicable al precio. Si el descuento es un porcentaje, se aplica un porcentaje del precio; si es fijo, se resta una cantidad fija.
-
-#### 4. **Aplicación de Descuentos a Productos**
-- **Actor:** Usuario.
-- **Descripción:** Permite aplicar descuentos a productos cuando se consultan sus precios. El precio final incluye descuentos activados para ese artículo.
-  - **Validaciones:**
-    1. **Verificación de descuentos activos:**
-       - Se consulta si hay descuentos activos para el artículo. Si no se encuentran descuentos, el precio se mantiene sin cambios.
-    2. **Cálculo de precio con descuento:**
-       - Los descuentos se aplican acumulativamente. El precio final con descuento no puede ser negativo, por lo que se asegura que el precio nunca baje de 0.
-    3. **Devolver precio con descuentos:**
-       - El precio final con descuento y la lista de descuentos aplicados son devueltos al cliente.
-
-#### 5. **Mantenimiento de Precios de Productos**
-- **Actor:** Usuario.
-- **Descripción:** Permite la creación y actualización de precios para productos en el catálogo. También se valida la fecha de vigencia del precio.
-  - **Validaciones:**
-    1. **Fecha de validez del precio:**
-       - Se valida que el precio esté dentro del rango de fechas permitido (utilizando `start_date` y `end_date`). Si el precio no está dentro del rango, se lanza un error con el mensaje "The current date is not within the allowed range".
-    2. **Verificación de precios existentes:**
-       - Si ya existe un precio para el artículo, se marca el precio anterior como expirado (actualizando su `end_date`).
-    3. **Verificación de precio válido:**
-       - Se valida que el valor del precio no sea nulo. Si no se especifica un precio, se lanza un error con el mensaje "Price is required".
-    4. **Notificación de cambios en el precio:**
-       - Cuando un nuevo precio es creado, se envía una notificación a través de RabbitMQ para actualizar otros sistemas relacionados.
-
-#### 6. **Consulta de Precios de Productos**
-- **Actor:** Cliente.
-- **Descripción:** Permite a los clientes consultar el precio de un artículo y obtener el precio con descuentos aplicados.
-  - **Validaciones:**
-    1. **Verificación de existencia del producto:**
-       - Si no se encuentra el producto, se lanza un error con el mensaje "Product not found".
-    2. **Aplicación de descuentos:**
-       - Se consulta si hay descuentos activos para el artículo y se aplica el descuento correspondiente para calcular el precio final con descuento.
-    3. **Devolución de precios:**
-       - El precio con descuento y los descuentos aplicados son devueltos al cliente.
-
-#### 7. **Notificación de Cambios de Precios**
-- **Actor:** Sistema de estadísticas o sistemas externos.
-- **Descripción:** Notificar a otros sistemas sobre los cambios de precios para su análisis y uso en reportes.
-  - **Validaciones:**
-    1. **Notificación de actualización de precios:**
-       - Cada vez que se crea o actualiza un precio, el sistema debe enviar un mensaje asíncrono (usando RabbitMQ) para informar a otros sistemas sobre el cambio de precio.
-
-## Modelo de Datos
-
-1. **Discount**
-   - `id`: string - Identificador único del descuento
-   - `name`: string - Nombre del descuento
-   - `type`: string - Tipo de descuento (`porcentaje`, `fijo`, etc.)
-   - `value`: number - Valor numérico del descuento
-   - `start_date`: date - Fecha de inicio de validez del descuento
-   - `end_date`: date - Fecha de fin de validez del descuento
-   - `article_ids`: array of strings - Lista de IDs de productos a los que se aplica el descuento
-
-2. **Price**
-   - `id`: string - Identificador único del precio
-   - `article_id`: string - ID del producto asociado a este precio
-   - `price`: number - Precio del producto en el período especificado
-   - `start_date`: date - Fecha de inicio de este precio
-   - `end_date`: date - Fecha de fin de este precio
-
-3. **CouponUsage**
-   - `id`: string - Identificador único del uso del cupón
-   - `code`: string - Código del cupón utilizado
-   - `createdAt`: string - Fecha y Hora de uso del cupón.
-
-4. **Coupon**
-   - `id`: string - Identificador único del cupón
-   - `code`: string - Código del cupón que se aplica para obtener el descuento
-   - `discount_type`: string - Tipo de descuento (`porcentaje`, `fijo`, etc.)
-   - `discount_value`: number - Valor del descuento (opcional, para tipos de descuento con valor específico)
-   - `applicable_products`: array of strings - IDs de los productos a los que aplica el cupón (opcional)
-   - `minimum_purchase`: number - Monto mínimo de compra para poder usar el cupón (opcional)
-   - `uses_limit`: number - Número máximo de veces que se puede usar el cupón
-   - `start_date`: date - Fecha de inicio de validez del cupón
-   - `end_date`: date - Fecha de fin de validez del cupón
+#### CU: Iniciar entrega
+- **Precondición**: La orden está validada (estado `VALIDATED` en Orders).
+- **Camino normal**:
+  - Orders envía un mensaje ásincrono con el id de la orden y la dirección de envío a Delivery.
+  - Delivery busca la orden por su orderId en el microservicio orders
+  - Se crea un objeto `Delivery` con: 
+    - id: generado
+    - orderId: id proveniente del mensaje de Orders
+    - shippingAdress: direccion de envío proveniente del mensaje de Orders
+    - trackingNumber: generado de la siguiente forma `TN-` + `orderId` (TN-5542)
+    - createdAt: fecha actual
+  - Se crea un objeto `Tracking` con: 
+    - id: generado
+    - deliveryId: id del delivery recién creado
+    - carrierId: nulo ya que todavía no se asigna un carrier al Delivery 
+    - status: `IN_PREPARATION`
+    - location: { "latitude": -32.889458, "longitude": -68.845838 } (ubicación inicial: Mendoza)
+    - timestamp: fecha actual
+  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el delivery recien creado
+- **Caminos alternativos**:
+  - Si no existe la orden se responde con un error
+  - Si no se envía una dirección de envío se responde con un error
+  - Si no se puede crear la entrega se responde con un error
 
 
-### Explicación de Cupones
-- **Cupón por Compra Mínima:** Configurar minimum_purchase para aplicar el cupón solo en compras superiores a cierto monto.
-- **Aplicación en Productos :** Usar applicable_products para limitar el cupón a ciertos productos.
-- **Límite de Usos:** Con uses_limit, el cupón solo se podrá utilizar un número determinado de veces (útil para promociones limitadas).
-- **Descuento Variable:** Personalizar discount_type y discount_value permite aplicar descuentos específicos sin depender de un descuento fijo.
+#### CU: Actualización de tracking de una entrega
+- **Precondición**: El Delivery se encuentra en estado `IN_PREPARATION`, `IN_TRANSIT`, `NEAR_DESTIN`.
+- **Camino normal**:
+  - Se busca el Delivery y el Tracking asociado a la misma (historico de estados) 
+  - Se busca el ultimo Tracking para validar el estado del delivery
+  - Se permite almacenar múltiples estados `IN_TRANSIT` con actualizaciones de `location` para reflejar movimientos.
+  - Se crea un nuevo objeto `Tracking` con: 
+    - id: generado
+    - deliveryId: ID del Delivery
+    - carrierId: ID del usuario activo
+    - status: nuevo estado (`IN_TRANSIT`, `NEAR_DESTIN`, etc.)
+    - location: { "latitude": valor, "longitude": valor }
+    - timestamp: fecha actual
+  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el Delivery recien buscado
+- **Caminos alternativos**:
+  - Si no se encuentra el Delivery se responderá con un error
+  - Si el status que se envía en la request no existe o es nulo, se responderá con un error
+  - Si location es nulo en la request se responderá con un error
+  - Si se envía un status `IN_TRANSIT` y el último Tracking del delivery no se encuentra en estado `IN_PREPARATION` o `IN_TRANSIT` se responderá con un error.
+  - Si se envía un status `NEAR_DESTIN` y el último Tracking del delivery no se encuentra en estado `IN_TRANSIT` se responderá con un error.
 
-## Documentación de la API
+#### CU: Completar entrega
+- **Precondición**: El Delivery se encuentra en estado `NEAR_DESTIN`.
+- **Camino normal**:
+  - Se busca el Delivery y el Tracking asociado a la misma (historico de estados) 
+  - Se busca el ultimo Tracking para validar el estado del delivery
+  - Se crea un nuevo objeto `Tracking` con: 
+    - id: generado
+    - deliveryId: ID del Delivery
+    - carrierId: ID del usuario activo
+    - status: `COMPLETED`
+    - location: { "latitude": <valor>, "longitude": <valor> } (ubicación de la entrega real)
+    - timestamp: fecha actual
+  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el Delivery recien buscado
+  - Delivery envía un mensaje a Orders indicandole que cambie el estado de la orden a `COMPLETED` 
+  - Orders actualiza el estado de la orden a `COMPLETED`
+- **Caminos alternativos**:
+  - Si no se encuentra el Delivery se responderá con un error.
+  - Si el último Tracking del delivery no se encuentra en estado `NEAR_DESTIN` se responderá con un error.
 
-Para ver la documentacion de la API, consulta el archivo [README-API.md](./README-API.md).
+#### CU: Entrega fallida
+- **Precondición**: El Delivery se encuentra en estado `NEAR_DESTIN`.
+- **Camino normal**:
+  - Se busca el Delivery y el Tracking asociado a la misma (historico de estados) 
+  - Se busca el ultimo Tracking para validar el estado del delivery
+  - Se crea un nuevo objeto `Tracking` con: 
+    - id: generado
+    - deliveryId: ID del Delivery
+    - carrierId: ID del usuario activo
+    - status: `FAILED`
+    - location: { "latitude": <valor>, "longitude": <valor> } (ubicación donde falló la entrega)
+    - timestamp: fecha actual
+  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el Delivery recien buscado
+  - Delivery envía un mensaje a Orders indicandole que cambie el estado de la orden a `FAILED` 
+  - Orders actualiza el estado de la orden a `FAILED`
+- **Caminos alternativos**:
+  - Si no se encuentra el Delivery se responderá con un error.
+  - Si el último Tracking del delivery no se encuentra en estado `NEAR_DESTIN` se responderá con un error.
 
-## Interfaz RabbitMQ para Notificaciones de Precios
+#### CU: Consultar Delivery
+- **Precondición**: El Delivery debe existir.
+- **Camino normal**:
+  - Se busca el Delivery por deliveryId o trackingNumber
+  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el Delivery recien buscado
+  - Se retorna la proyección del Delivery
+- **Caminos alternativos**:
+  - Si el Delivery no existe se responderá con un error.
 
-Este servicio se suscribe a un canal de RabbitMQ para notificar de forma asíncrona los cambios en los precios, como nuevas asignaciones o actualizaciones de precios, a servicios externos como **Stats**.
+#### CU: Consultar Tracking de un delivery
+- **Precondición**: El Delivery debe existir.
+- **Camino normal**:
+  - Se busca el Delivery por deliveryId o trackingNumber
+  - Se busca el Tracking asociado al mismo
+  - Se retorna un DTO con: 
+    - deliveryId
+    - trackingNumber
+    - trackingDetails: lista con todos los Tracking del delivery
+- **Caminos alternativos**:
+  - Si el Delivery no existe se responderá con un error.
 
-- **Cola RabbitMQ**: `price_notification_queue`
+## Modelo de datos
 
-#### Mensaje de Notificación
+### Entidades
+
+**Delivery**
+- id: `string`
+- status: `Status` 
+- orderId: `number`
+- shippingAddress: `string` 
+- trackingNumber: `string`
+- createdAt: `Date` 
+- updatedAt: `Date` 
+
+**Tracking**
+- id: `string`
+- deliveryId: `string` 
+- status: `Status`
+- location: { "latitude": `number`, "longitude": `number` }
+- carrierId: `number`
+- timestamp: `Date` 
+
+### Enumeraciones
+
+**Status**
+- name: `string` (`IN_PREPARATION`, `IN_TRANSIT`, `NEAR_DESTIN`, `COMPLETED`, `FAILED`)
+
+## API
+
+### CU Iniciar entrega
+
+**Interfaz asincronica (rabbit)** 
+
+Recibe para crear la entrega en direct `order_request_queue`
+
+*body*
 ```json
 {
-  "_id": "67366854ec21ade4efab8202",
-  "article_id": "2",
-  "price": 9890,
-  "start_date": "2024-11-10T21:07:49.125Z",
-  "end_date": "2024-11-16T21:07:49.125Z",
-  "createdAt": "2024-11-14T21:15:00.294Z",
-  "updatedAt": "2024-11-14T21:15:00.294Z"
+	"orderId": "123456",
+  "shippingAdress": "Calle Antonelli 111, Guaymallen",
 }
 ```
 
-#### Descripción:
-- **`_id`**: Identificador único del documento en la base de datos, generado automáticamente.
-- **`article_id`**: Identificador del artículo o producto al que corresponde este registro.
-- **`price`**: El precio del artículo, expresado en la unidad monetaria correspondiente.
-- **`start_date`**: Fecha y hora en que el precio del artículo comienza a ser válido, en formato ISO 8601.
-- **`end_date`**: Fecha y hora en que el precio del artículo deja de ser válido, en formato ISO 8601.
-- **`createdAt`**: Fecha y hora en que el registro fue creado, en formato ISO 8601.
-- **`updatedAt`**: Fecha y hora en que el registro fue actualizado por última vez, en formato ISO 8601.
+*Response*  
+Si la creacion del delivery fue exitosa responde en fanout `delivery_notification_queue`
 
-#### Flujo del Mensaje:
-1. Cuando se crea o modifica un precio, se envía una notificación a la cola de RabbitMQ.
-2. Los servicios interesados, como **Stats**, consumen esta información para actualizar sus métricas o informes.
+```json
+{
+  "orderId": "123456",
+  "status": "IN_PREPARATION",  
+  "message": "Delivery started successfully"
+}
+```
+
+Si la creacion del delivery no fue exitosa responde en fanout `delivery_notification_queue`
+
+```json
+{
+  "orderId": "123456",
+  "status": "FAILED",  
+  "message": "Delivery failed"
+}
+```
+
+`400 BAD REQUEST` si shippingAdress es null
+
+### CU: Actualización de tracking de una entrega
+
+**Interfaz REST**  
+`POST /v1/trackings`
+
+*Headers*  
+Authorization: Bearer token
+
+*Request*
+ ```json
+{
+  "deliveryId": "123456",
+  "location": { 
+    "latitude": -32.889458, 
+    "longitude": -68.845838 
+  },
+  "status": {
+     "name": "IN_TRANSIT"
+  }
+}
+```
+
+*Response*  
+`201 CREATED` si la actualización del tracking fue éxitosa.  
+```json
+{
+  "id": "123456",
+  "deliveryId": "123456", 
+  "status": {
+     "name": "IN_TRANSIT"
+  },
+  "carrierId": "123456", 
+  "location": { 
+    "latitude": -32.889458, 
+    "longitude": -68.845838 
+  }, 
+  "timestamp": "2024-11-02 16:00:00.000"
+}
+```
+`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId
+
+`400 BAD REQUEST` Si location es nulo 
+
+`400 BAD REQUEST` Si se envía un status `IN_TRANSIT` y el último Tracking del delivery no se encuentra en estado `IN_PREPARATION` o `IN_TRANSIT`
+
+`400 BAD REQUEST` Si se envía un status `NEAR_DESTIN` y el último Tracking del delivery no se encuentra en estado `IN_TRANSIT`
+
+### CU: Completar entrega 
+
+**Interfaz REST**  
+`PUT /v1/deliveries/{deliveryId}/complete`
+
+*Headers*  
+Authorization: Bearer token
+
+*Response*  
+`200 OK` si la actualización del delivery fue éxitoso.  
+```json
+{
+  "id": "123456",
+  "orderId": "123456",
+  "shippingAdress": "Calle Antonelli 111, Guaymallen",
+  "trackingNumber": "TN-123456",
+  "status": {
+     "name": "COMPLETED"
+  },
+  "createdAt": "2024-11-02 16:00:00.000",
+  "updatedAt": "2024-12-02 16:00:00.000"
+}
+```
+
+`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId
+
+**Interfaz asincronica (rabbit)** 
+
+Responde con la entrega del delivery en fanout `delivery_notification_queue`
+
+*body*
+```json
+{
+  "orderId": "123456",
+  "status": "COMPLETED",  
+  "message": "Delivery completed"
+}
+```
+
+### CU: Entrega fallida 
+
+**Interfaz REST**  
+`PUT /v1/deliveries/{deliveryId}/failed`
+
+*Headers*  
+Authorization: Bearer token
+
+*Response*  
+`200 OK` si la actualización del delivery fue éxitoso.  
+```json
+{
+  "id": "123456",
+  "orderId": "123456",
+  "shippingAdress": "Calle Antonelli 111, Guaymallen",
+  "trackingNumber": "TN-123456",
+  "status": {
+     "name": "FAILED"
+  },
+  "createdAt": "2024-11-02 16:00:00.000",
+  "updatedAt": "2024-12-02 16:00:00.000"
+}
+```
+`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId
+
+**Interfaz asincronica (rabbit)** 
+
+Responde con el fallo del delivery en fanout `delivery_notification_queue`
+*body*
+```json
+{
+  "orderId": "123456",
+  "status": "FAILED",  
+  "message": "Delivery failed"
+}
+```
+
+### CU: Consultar Delivery
+
+**Interfaz REST**  
+`GET /v1/deliveries/{deliveryId | trackingNumber}`
+
+*Headers*  
+Authorization: Bearer token
+
+*Response*  
+`200 OK` si el Delivery fue encontrado exitosamente.
+```json
+{
+  "id": "123456",
+  "orderId": "123456",
+  "shippingAdress": "Calle Antonelli 111, Guaymallen",
+  "trackingNumber": "TN-123456",
+  "status": {
+      "name": "IN_TRANSIT"
+  },
+  "createdAt": "2024-11-02 16:00:00.000",
+  "updatedAt": "2024-12-02 16:00:00.000"
+}
+```
+`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId o trackingNumber
+
+### CU: Consultar Tracking de un Delivery
+
+**Interfaz REST**  
+`GET /v1/trackings/{deliveryId}`
+
+*Headers*  
+Authorization: Bearer token
+
+*Response*  
+`200 OK` si el Delivery y su historial de Tracking fueron encontrados exitosamente.
+```json
+{
+  "deliveryId": "123456",
+  "trackingNumber": "TN-123456",
+  "trackingDetails": [
+    {
+      "id": "1",
+      "status": {
+          "name": "IN_PREPARATION"
+      },
+      "location": { 
+        "latitude": -32.889458, 
+        "longitude": -68.845838 
+      }, 
+      "carrierId": null,
+      "timestamp": "2024-11-02 16:00:00.000"
+    },
+    {
+      "id": "2",
+      "status": {
+         "name": "IN_TRANSIT"
+      },
+      "location": { 
+        "latitude": -32.889458, 
+        "longitude": -68.845838 
+      }, 
+      "carrierId": "987654",
+      "timestamp": "2024-11-03 10:30:00.000"
+    }
+  ]
+}
+```
+`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId o trackingNumber

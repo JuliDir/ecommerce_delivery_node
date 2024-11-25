@@ -7,7 +7,7 @@ class TrackingRepository {
 
   async getTrackingsByDeliveryIdSortByTimestampAsc(deliveryId: string) {
     return TrackingModel.find({ 
-      delivery_id: deliveryId,
+      deliveryId,
     }).sort({ timestamp: 1 });
   }
 

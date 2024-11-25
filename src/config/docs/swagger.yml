@@ -1,58 +1,16 @@
 openapi: 3.0.0
 info:
-  title: Pricing API
+  title: Delivery API
   version: 1.0.0
   description: |
-    El microservicio de **Pricing** gestiona los precios de un catálogo, genera políticas de descuentos, maneja precios especiales, cupones y descuentos, y permite consultar precios para el proceso de compras. También notifica cambios de precios de forma asíncrona a otros servicios, como **Stats**.
+    El microservicio de **Delivery** Gestiona el flujo de vida de una entrega relacionada a una orden. También notifica cambios de estados del delivery de forma asíncrona a otros servicios, como **Orders**.
 paths:
-  '/test':
+  /deliveries/{delivery_id}:
     get:
       tags:
-        - Deploy
-      summary: Endpoint para testear funcionamiento de api.
-      description: Endpoint para testear funcionamiento de api..
-      operationId: deploy
-      responses:
-        '200':
-          $ref: '#/components/responses/Success'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-  /prices:
-    post:
-      tags:
-        - Price
-      summary: Crear Precio de Producto
-      description: Crea el precio de un producto.
-      security:
-        - bearerAuth: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                article_id:
-                  type: string
-                price:
-                  type: number
-                  format: float
-      responses:
-        '200':
-          description: Precio actualizado correctamente.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Price'
-  /prices/{article_id}:
-    get:
-      tags:
-        - Price
-      summary: Consultar Precio de Producto
-      description: Devuelve el precio actual de un producto específico.
+        - Delivery
+      summary: Consultar un delivery
+      description: Devuelve la información de un delivery.
       security:
         - bearerAuth: []
       parameters:

@@ -4,7 +4,7 @@ import { TrackingDocument } from './entities/tracking';
 export const TrackingSchema = new Schema<TrackingDocument>(
   {
     deliveryId: { type: String, required: true },
-    status: { type: String, required: true, enum: ['IN_PREPARATION', 'IN_TRANSIT', 'NEAR_DESTIN','DELIVERED', 'FAILED'] },
+    status: { type: String, required: true, enum: ['IN_PREPARATION', 'IN_TRANSIT', 'NEAR_DESTIN','COMPLETED', 'FAILED'] },
     location: { type: { latitude: Number, longitude: Number }, required: true },
     carrierId: { type: String, required: false },
     timestamp: { type: Date, required: true },

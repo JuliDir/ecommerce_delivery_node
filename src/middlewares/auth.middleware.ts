@@ -19,6 +19,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     });
 
     if (authResponse.status === 200) {
+      req.user = authResponse.data;
       next();
     } else {
       res.status(401).json({ message: 'Unauthorized' });
@@ -27,3 +28,11 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     res.status(401).json({ message: 'Unauthorized' });
   }
 };
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}

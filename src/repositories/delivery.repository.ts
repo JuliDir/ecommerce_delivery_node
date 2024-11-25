@@ -7,6 +7,12 @@ class DeliveryRepository {
     return ModelDelivery.findById(deliveryId);
   }
 
+  async getByTrackingNumber(trackingNumber: string) {
+    return ModelDelivery.findOne({
+      trackingNumber,
+    });
+  }
+
   async create(payload: Delivery) {
     return ModelDelivery.create(payload);
   }

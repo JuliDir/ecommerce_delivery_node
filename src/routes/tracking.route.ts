@@ -17,8 +17,10 @@ class TrackingRoute {
 
   private updateTracking(req: Request, res: Response, next: NextFunction) {
     const { body } = req as RequestCreateTracking;
+    const carrierId = req.user.id;
+
     trackingService
-      .updateTracking(body)
+      .updateTracking(body, carrierId)
       .then((response) => res.json(response))
       .catch((err) => next(err));
   } 
