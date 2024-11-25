@@ -19,4 +19,5 @@ export default {
   RABBIT_URL: process.env.RABBIT_URL || '',
   QUEUE_ORDERS_REQUEST: process.env.QUEUE_ORDERS_REQUEST || '',
   QUEUE_DELIVERY_NOTIFICATIONS: process.env.QUEUE_DELIVERY_NOTIFICATIONS || '',
+  MS_ORDER_URL: process.env.MS_ORDER_URL || ''
 };

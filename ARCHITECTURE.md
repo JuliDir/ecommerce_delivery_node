@@ -1,379 +1,295 @@
-## Microservicio de Delivery
+# ecommerce
 
-### Casos de uso
+## Casos de Uso
 
-#### CU: Actualizar proyección de un Delivery
-- **Precondición**: El Delivery debe existir
-- **Camino normal**:
-  - Se busca el Delivery y el tracking asociado a la misma (historico de estados)
-  - Se busca el tracking donde su atributo timestamp sea mayor al atributo updatedAt de el Delivery, es decir, el último estado.
-  - Se actualiza la proyección de el Delivery actualizando: 
-    - status: status del tracking encontrado
-    - updatedAt: fecha actual
-- **Caminos alternativos**:
-  - Si no existe el Delivery entonces se responde con un error.
+Es un ecommerce, o carrito de compras online.
 
-#### CU: Iniciar entrega
-- **Precondición**: La orden está validada (estado `VALIDATED` en Orders).
-- **Camino normal**:
-  - Orders envía un mensaje ásincrono con el id de la orden y la dirección de envío a Delivery.
-  - Se crea un objeto `Delivery` con: 
-    - id: generado
-    - orderId: id proveniente del mensaje de Orders
-    - shippingAdress: direccion de envío proveniente del mensaje de Orders
-    - trackingNumber: generado de la siguiente forma `TN-` + `orderId` (TN-5542)
-    - createdAt: fecha actual
-  - Se crea un objeto `Tracking` con: 
-    - id: generado
-    - deliveryId: id del delivery recién creado
-    - carrierId: nulo ya que todavía no se asigna un carrier al Delivery 
-    - status: `IN_PREPARATION`
-    - location: { "latitude": -32.889458, "longitude": -68.845838 } (ubicación inicial: Mendoza)
-    - timestamp: fecha actual
-  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el delivery recien creado
-  - Delivery envía un mensaje ásincrono notificando la creación del delivery a los demás microservicios.
-- **Caminos alternativos**:
-  - Si no se envía una dirección de envío se responde con un error
-  - Si no se puede crear la entrega se responde con un error
+**El usuario** :
 
+- se registra.
+- se loguea en el sistema
+- se deslogua del sistema
+- navega por un catalogo de artículos.
+- agrega artículos al cart
+- revisa el cart
+- puede agregar mas artículos o quitar artículos del cart.
+- hace checkout del cart y genera una orden de compra
+- define la forma de pago
+- visualiza el estado de la orden.
 
-#### CU: Actualización de tracking de una entrega
-- **Precondición**: El Delivery se encuentra en estado `IN_PREPARATION`, `IN_TRANSIT`, `NEAR_DESTIN`.
-- **Camino normal**:
-  - Se busca el Delivery y el Tracking asociado a la misma (historico de estados) 
-  - Se busca el ultimo Tracking para validar el estado del delivery
-  - Se permite almacenar múltiples estados `IN_TRANSIT` con actualizaciones de `location` para reflejar movimientos.
-  - Se crea un nuevo objeto `Tracking` con: 
-    - id: generado
-    - deliveryId: ID del Delivery
-    - carrierId: ID del usuario activo
-    - status: nuevo estado (`IN_TRANSIT`, `NEAR_DESTIN`, etc.)
-    - location: { "latitude": valor, "longitude": valor }
-    - timestamp: fecha actual
-  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el Delivery recien buscado
-- **Caminos alternativos**:
-  - Si no se encuentra el Delivery se responderá con un error
-  - Si el status que se envía en la request no existe o es nulo, se responderá con un error
-  - Si location es nulo en la request se responderá con un error
-  - Si se envía un status `IN_TRANSIT` y el último Tracking del delivery no se encuentra en estado `IN_PREPARATION` o `IN_TRANSIT` se responderá con un error.
-  - Si se envía un status `NEAR_DESTIN` y el último Tracking del delivery no se encuentra en estado `IN_TRANSIT` se responderá con un error.
+El resto son casos de estudio
 
-#### CU: Completar entrega
-- **Precondición**: El Delivery se encuentra en estado `NEAR_DESTIN`.
-- **Camino normal**:
-  - Se busca el Delivery y el Tracking asociado a la misma (historico de estados) 
-  - Se busca el ultimo Tracking para validar el estado del delivery
-  - Se crea un nuevo objeto `Tracking` con: 
-    - id: generado
-    - deliveryId: ID del Delivery
-    - carrierId: ID del usuario activo
-    - status: `COMPLETED`
-    - location: { "latitude": <valor>, "longitude": <valor> } (ubicación de la entrega real)
-    - timestamp: fecha actual
-  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el Delivery recien buscado
-  - Delivery envía un mensaje a Orders indicandole que cambie el estado de la orden a `COMPLETED` 
-  - Orders actualiza el estado de la orden a `COMPLETED`
-- **Caminos alternativos**:
-  - Si no se encuentra el Delivery se responderá con un error.
-  - Si el último Tracking del delivery no se encuentra en estado `NEAR_DESTIN` se responderá con un error.
+Como **usuario administrador**:
 
-#### CU: Entrega fallida
-- **Precondición**: El Delivery debe existir.
-- **Camino normal**:
-  - Se busca el Delivery y el Tracking asociado a la misma (historico de estados) 
-  - Se busca el ultimo Tracking para validar el estado del delivery
-  - Se crea un nuevo objeto `Tracking` con: 
-    - id: generado
-    - deliveryId: ID del Delivery
-    - carrierId: ID del usuario activo
-    - status: `FAILED`
-    - location: { "latitude": <valor>, "longitude": <valor> } (ubicación donde falló la entrega)
-    - timestamp: fecha actual
-  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el Delivery recien buscado
-  - Delivery envía un mensaje a Orders indicandole que cambie el estado de la orden a `FAILED` 
-  - Orders actualiza el estado de la orden a `FAILED`
-- **Caminos alternativos**:
-  - Si no se encuentra el Delivery se responderá con un error.
-  - Si el último Tracking del delivery se encuentra en estado `COMPLETED` o `FAILED` se responderá con un error.
+- crea nuevos artículos
+- elimina artículos
+- define stock y precio actual
+- administra los permisos de usuario
+- invalida otros usuarios del sistema
 
-#### CU: Consultar Delivery
-- **Precondición**: El Delivery debe existir.
-- **Camino normal**:
-  - Se busca el Delivery por deliveryId o trackingNumber
-  - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el Delivery recien buscado
-  - Se retorna la proyección del Delivery
-- **Caminos alternativos**:
-  - Si el Delivery no existe se responderá con un error.
+## Arquitectura
 
-#### CU: Consultar Tracking de un delivery
-- **Precondición**: El Delivery debe existir.
-- **Camino normal**:
-  - Se busca el Delivery por deliveryId o trackingNumber
-  - Se busca el Tracking asociado al mismo
-  - Se retorna un DTO con: 
-    - deliveryId
-    - trackingNumber
-    - trackingDetails: lista con todos los Tracking del delivery
-- **Caminos alternativos**:
-  - Si el Delivery no existe se responderá con un error.
+Por motivos de simplicidad se ha reducido la cantidad de microservicios al mínimo, para dictar el curso. A su vez se han reducido al mínimo los frameworks y se ha intentado codificar los microservicios de una forma sencilla y legible.
 
-## Modelo de datos
+Por lo tanto los microservicios necesitan un trabajo mas refinado de framework para poder ponerse en producción.
 
-### Entidades
+Se compone de los siguientes microservicios :
 
-**Delivery**
-- id: `string`
-- status: `Status` 
-- orderId: `number`
-- shippingAddress: `string` 
-- trackingNumber: `string`
-- createdAt: `Date` 
-- updatedAt: `Date` 
+**Auth**
 
-**Tracking**
-- id: `string`
-- deliveryId: `string` 
-- status: `Status`
-- location: { "latitude": `number`, "longitude": `number` }
-- carrierId: `number`
-- timestamp: `Date` 
+- Controla la seguridad del sistema.
+- Los usuarios se registran utilizando REST signup.
+- Los usuarios registrados adquieren el permiso "user".
+- Un usuario con permiso "admin" puede otorgar nuevos permisos a los demás usuarios.
+- Inicialmente nadie es admin, por lo tanto hay que recurrir a MongoDB Compass para asignarle el permiso a alguien.
+- Los usuarios se loguean utilizando REST.
+- Utiliza JWT, tanto el signin como signup devuelven el token para utilizar el sistema.
+- JWT esta compuesto por
+- El token debe pasarse siempre a todos los microservicios a través del header "Authorization": "bearer **token**"
+- Los tokens nunca caducan, los usuarios puede utilizar el token todo el tiempo que quieran.
+- Los token se invalidan en el signout. Desde el servidor se podría invalidar los tokens a demanda.
+- Los demás microservicios utilizan REST /current para obtener los datos del usuario logueado, utilizando el token pasado en el header. (queda en estudio realizar un protocolo binario para este caso)
+- La autorización anterior es una consulta costosa, para evitar consultas repetitivas los microservicios deben almacenar los datos del token y usuario en un cache local.
+- Cuando se invalida un token, auth envía un broadcast con rabbit a todos los microservicios para que se invaliden los caches locales para ese token.
 
-### Enumeraciones
+**Image**
 
-**Status**
-- name: `string` (`IN_PREPARATION`, `IN_TRANSIT`, `NEAR_DESTIN`, `COMPLETED`, `FAILED`)
+- Image almacena imágenes en una base de datos redis.
+- Es un microservicio que se realiza por cuestiones técnicas
+- Las imágenes deben subirse en formato base 64 "data:image/jpeg;base64,/9j/...".
+- Se pueden subir jpeg y png.
+- Al subir una imagen se obtiene el id, que luego sirve para recuperarla.
+- Se puede descargar en formato base64 o bien en jpeg
+- Se pueden descargar imágenes con tamaños mas reducidos para mejorar la experiencia del usuario
+- Los tamaños reducidos de imágenes se almacenan en redis para mejorar el acceso
+- Se necesita estar logueado como 'user' para subir imágenes.
+- No hace falta estar logueado para descargarlas.
+- Las imágenes nunca se borran de la db, solo se suben y se leen.
+- Utiliza rabbit para leer broadcasts de logout.
 
-## API
+**Catalog**
 
-### CU Iniciar entrega
+- El catalogo es el encargado de mantener un listado de artículos.
+- Ademas de el listado de artículos mantiene el precio y el stock, dos cosas que no deben ser responsabilidad de este microservicio, pero simplifican los ejemplos en la cátedra.
+- Los artículos se crean a través de servicios rest.
+- Los artículos tienen asociada un image id del microservicio Image.
+- Para cargar artículos se necesita ser 'admin' del sistema.
+- Para consultar artículos no se necesita ser usuario.
+- Los artículos se consultan a través de servicios Rest.
+- El catalogo tiene la capacidad de validar artículos en forma asíncrona a través de rabbit.
+- El catalogo puede validar una existencia simple o bien validar mas datos de artículos, como precio y stock.
+- El catalogo se une a la cola de rabbit "topic" para "order_placed" de modo que cuando se hace un place de una orden automáticamente procede a validar los artículos e informar a orders que el los artículos son validos o no.
+- Ademas, utiliza rabbit para leer broadcasts de logout.
 
-**Interfaz asincronica (rabbit)** 
+**Cart**
 
-Recibe para crear la entrega en direct `order_request_queue`
+- Es el carrito del sistema
+- Solo hay un carrito vigente en todo momento para un usuario logueado.
+- Solo usuarios logueados pueden usarlo.
+- Al carrito se le adjuntan article id y cantidad.
+- El carrito se usa a través de la interfaz rest.
+- La UI debe encargarse de traer los detalles de artículos desde catalog.
+- El carrito valida los artículos que se van agregando en forma asíncrona contra catalog, utilizando rabbit. La validación se debe hacer periódicamente para actualizar cambios de catalog.
+- Ademas puede ejecutarse una validación completa a demanda, que nos indica con warnings si un articulo no tiene suficiente stock. Una operación cara, pero recomendada en caso de que se este por hacer checkout.
+- El checkout del carrito cierra el carrito y abre uno nuevo para el usuario.
+- El proceso del checkout envía un mensaje asíncrono "place_order" utilizando rabbit a "order" service indicando que se cerro el carrito y se debe proceder a generar la orden.
+- Orders, una vez creada la orden enviar un "topic" "order_placed", cart lee dicho mensaje y actualiza el carrito con el order Id correspondiente.
+- Queda pendiente que se reenvíen los "place_order" en caso que el "order_placed" no se haya recibido.
+- Ademas, utiliza rabbit para leer broadcasts de logout.
 
-*body*
-```json
-{
-	"orderId": "123456",
-  "shippingAdress": "Calle Antonelli 111, Guaymallen",
-}
-```
+**Orders**
 
-*Response*  
-Si la creacion del delivery fue exitosa responde en fanout `delivery_notification_queue`
+- Es el encargado de procesar la orden.
+- Se maneja con CQRS. Esto quiere decir que se guardan solo eventos, no existe una entidad que sea el estado actual de la orden. Dicho estado se recupera desde los eventos.
+- Desde el cart se recibe un "place_order", si todo esta bien se guarda el evento y se envía un mensaje a rabbit con el topic "order_placed".
+- El mensaje topic "order_placed" lo escuchan Cart y Catalog. Catalog va a responder con el estado de los artículos "article-data".
+- Orders escucha "article-data" porque es una validación de artículos, que indica que los artículos de la orden son validos. Dicho evento se guarda.
+- Orders posee una interfaz rest que permite cargar la forma de pago con que se realizara la orden. El pago de la orden es algo que debería registrarse en Payments, pero para simplificar los ejemplos se decidió así.
 
-```json
-{
-  "orderId": "123456",
-  "status": "IN_PREPARATION",  
-  "message": "Delivery started successfully"
-}
-```
+Las proyecciones de Orders:
 
-Si la creacion del delivery no fue exitosa responde en fanout `delivery_notification_queue`
+En CQRS se manejan proyecciones para facilitar el acceso a datos
 
-```json
-{
-  "orderId": "123456",
-  "status": "FAILED",  
-  "message": "Delivery failed"
-}
-```
+**_Order_**
 
-`400 BAD REQUEST` si shippingAdress es null
+- Se genera una orden, virtual, a partir de los eventos guardados.
+- A medida que se van generando eventos, se va completando la Orden con la información adecuada.
+- Existe un estado de la orden , que puede ser: PLACED, INVALID, VALIDATED, PAYMENT_DEFINED
+- PLACED es el estado cuando recién se recibe el evento place desde el cart.
+- VALIDATED es el estado que se adquiere cuando se validan los artículos desde el catalogo
+- INVAILID es un estado que se adquiere cuando el catalogo informa que los artículos son inválidos.
+- PAYMENT_DEFINED es un estado que se obtiene cuando el pago se definió.
+- Quedan muchos estados mas por resolver, e interacciones con otros microservicios, como caso de estudio.
 
-### CU: Actualización de tracking de una entrega
+**_Status_**
 
-**Interfaz REST**  
-`POST /v1/trackings`
+- Es un estado global de las ordenes.
+- Indica por cada orden cual es el estado actual en que se encuentra
+- No es preciso, no puede serlo ya que existe mucho paralelismo en estos sistemas. Queda como caso de estudio como podría mejorarse esta situación.
+- Debe actualizarse periódicamente este estado, a partir de la proyección de Orders. Deben haber procesos batch que se ejecuten con diferentes prioridades y diferentes frecuencia dependiendo de cada estado, que permita mantener esta proyección actualizada.
+- Los procesos batch de actualizaciones podrían encolarse en rabbit para distribuir la carga entre varios servidores.
+- A su vez cada estado debe desencadenar los controles necesarios del seguimiento de la orden. Dado que es factible que queden estados inconsistentes, los procesos batch deben encargarse de resolver estos inconvenientes de la cola de rabbit.
 
-*Headers*  
-Authorization: Bearer token
+**_Casos de estudio_**
 
-*Request*
- ```json
-{
-  "deliveryId": "123456",
-  "location": { 
-    "latitude": -32.889458, 
-    "longitude": -68.845838 
-  },
-  "status": {
-     "name": "IN_TRANSIT"
-  }
-}
-```
+- Muchas proyecciones pueden realizarse a partir de los eventos. Muchas proyecciones podrían almacenarse en diferentes bases de datos.
 
-*Response*  
-`201 CREATED` si la actualización del tracking fue éxitosa.  
-```json
-{
-  "id": "123456",
-  "deliveryId": "123456", 
-  "status": {
-     "name": "IN_TRANSIT"
-  },
-  "carrierId": "123456", 
-  "location": { 
-    "latitude": -32.889458, 
-    "longitude": -68.845838 
-  }, 
-  "timestamp": "2024-11-02 16:00:00.000"
-}
-```
-`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId
+## Algunos diagramas de comunicación asíncrona con RabbitMQ
 
-`400 BAD REQUEST` Si location es nulo 
+### **"logout"** de Auth
 
-`400 BAD REQUEST` Si se envía un status `IN_TRANSIT` y el último Tracking del delivery no se encuentra en estado `IN_PREPARATION` o `IN_TRANSIT`
+El logout es un broadcast enviado por Auth hacia todos los clientes conectados a rabbit.
+Cuando un token se desactiva el logout envía el token, para que los otros microservicios lo quiten de su cache.
 
-`400 BAD REQUEST` Si se envía un status `NEAR_DESTIN` y el último Tracking del delivery no se encuentra en estado `IN_TRANSIT`
+![https://g.gravizo.com/svg?
+ digraph G {
+   auth -> fanout [label=Logout];
+   fanout ->image ;
+   fanout -> cart;
+   fanout -> catalog;
+   fanout-> "...";
+ }](https://g.gravizo.com/svg?%20digraph%20G%20{%20auth%20-%3E%20fanout%20[label=Logout];%20fanout%20-%3Eimage%20;%20fanout%20-%3E%20cart;%20fanout%20-%3E%20catalog;%20fanout-%3E%20%22...%22;%20})
 
-### CU: Completar entrega 
+### **"article_exist"** de Catalog
 
-**Interfaz REST**  
-`PUT /v1/deliveries/{deliveryId}/complete`
+Es un evento que escucha Catalog, por exchange "direct", el evento lo puede enviar cualquier microservicio y catalog responde con el articulo y un flag si es valido o no. La comunicación es asíncrona, por lo tanto el mensaje debe indicar a que exchange y queue se debe responder.
 
-*Headers*  
-Authorization: Bearer token
+Por el momento solo Cart envía este tipo de mensajes, cada vez que se agrega un artículo al cart se valida si existe o no.
 
-*Response*  
-`200 OK` si la actualización del delivery fue éxitoso.  
-```json
-{
-  "id": "123456",
-  "orderId": "123456",
-  "shippingAdress": "Calle Antonelli 111, Guaymallen",
-  "trackingNumber": "TN-123456",
-  "status": {
-     "name": "COMPLETED"
-  },
-  "createdAt": "2024-11-02 16:00:00.000",
-  "updatedAt": "2024-12-02 16:00:00.000"
-}
-```
+![https://g.gravizo.com/svg?
+ digraph G {
+   cart ->catalog  [label="article_exist"];
+   catalog -> cart;
+   }](https://g.gravizo.com/svg?%20digraph%20G%20{%20cart%20-%3Ecatalog%20%20[label=%22article_exist%22];%20catalog%20-%3E%20cart;%20})
 
-`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId
+![https://g.gravizo.com/svg?
+ digraph G {
+   order ->catalog  [label="article_exist"];
+   catalog -> order;
+   }](https://g.gravizo.com/svg?%20digraph%20G%20{%20order%20-%3Ecatalog%20%20[label=%22article_exist%22];%20catalog%20-%3E%20order;%20})
 
-`400 NOT FOUND` si estado del delivery no se encuentra en `NEAR_DESTIN`
+### **"place_order"** de Catalog
 
-**Interfaz asincronica (rabbit)** 
+Es un evento que escucha Catalog, por exchange "direct", el evento lo puede enviar cualquier microservicio y catalog responde con el articulo y un flag si es valido o no. La comunicación es asíncrona, por lo tanto el mensaje debe indicar a que exchange y queue se debe responder.
 
-Responde con la entrega del delivery en fanout `delivery_notification_queue`
+Por el momento solo Cart envía este tipo de mensajes, cada vez que se agrega un artículo al cart se valida si existe o no.
 
-*body*
-```json
-{
-  "orderId": "123456",
-  "status": "COMPLETED",  
-  "message": "Delivery completed"
-}
-```
+![https://g.gravizo.com/svg?
+ digraph G {
+   cart ->orders  [label="place_order"];
+   cart -> order;
+   }](https://g.gravizo.com/svg?%20digraph%20G%20{%20cart%20-%3Eorders%20%20[label=%22place_order%22];%20cart%20-%3E%20order;%20})
 
-### CU: Entrega fallida 
+### **"order_placed"** de Order
 
-**Interfaz REST**  
-`PUT /v1/deliveries/{deliveryId}/failed`
+Cuando una orden se recibe por Order Service, order envía "order-placed" al exchange = "sell_flow" y "topic" = "order_placed".
+En este caso vemos en acción el patron **_inversion de control_**, por lo tanto los microservicios que deban hacer algo con este evento deben reaccionar.
+Puntualmente Cart y Catalog son los que reaccionan a este evento.
 
-*Headers*  
-Authorization: Bearer token
+Este ejemplo es clave para comprender el espíritu de los eventos en una arquitectura de microservicios.
 
-*Response*  
-`200 OK` si la actualización del delivery fue éxitoso.  
-```json
-{
-  "id": "123456",
-  "orderId": "123456",
-  "shippingAdress": "Calle Antonelli 111, Guaymallen",
-  "trackingNumber": "TN-123456",
-  "status": {
-     "name": "FAILED"
-  },
-  "createdAt": "2024-11-02 16:00:00.000",
-  "updatedAt": "2024-12-02 16:00:00.000"
-}
-```
-`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId
+![https://g.gravizo.com/svg?
+ digraph G {
+   auth -> fanout [label=order_placed];
+   fanout -> cart;
+   fanout -> catalog;
+ }](https://g.gravizo.com/svg?%20digraph%20G%20{%20auth%20-%3E%20fanout%20[label=order_placed];%20fanout%20-%3E%20cart;%20fanout%20-%3E%20catalog;%20})
 
-`400 BAD REQUEST` si el estado de la entrega se encuentra en `COMPLETED` o `FAILED`
+## Casos de Estudio
 
-**Interfaz asincronica (rabbit)** 
+Lo siguientes microservicios complementarían el sistema:
 
-Responde con el fallo del delivery en fanout `delivery_notification_queue`
-*body*
-```json
-{
-  "orderId": "123456",
-  "status": "FAILED",  
-  "message": "Delivery failed"
-}
-```
+### Stock
 
-### CU: Consultar Delivery
+- Maneja la cantidad actual de artículos en stock.
+- Maneja cantidad minima de stock para solicitar mas artículos.
+- Maneja movimientos de stock. La cantidad actual de artículos es calculada procesando los movimientos de stock.
+- Order y Stock Reposition generan movimientos sobre artículos
+- Notifica las altas de stock (async) para Orders, Catalog, Stats
+- Candidato ideal para CQRS
 
-**Interfaz REST**  
-`GET /v1/deliveries/{deliveryId | trackingNumber}`
+### Pricing
 
-*Headers*  
-Authorization: Bearer token
+- Mantiene precios del catalogo
+- Genera políticas de descuentos
+- Maneja precios especiales, cupones y descuentos
+- Permite consultar precios para el proceso de compras
+- Notifica los nuevos precios (async) para Stats
 
-*Response*  
-`200 OK` si el Delivery fue encontrado exitosamente.
-```json
-{
-  "id": "123456",
-  "orderId": "123456",
-  "shippingAdress": "Calle Antonelli 111, Guaymallen",
-  "trackingNumber": "TN-123456",
-  "status": {
-      "name": "IN_TRANSIT"
-  },
-  "createdAt": "2024-11-02 16:00:00.000",
-  "updatedAt": "2024-12-02 16:00:00.000"
-}
-```
-`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId o trackingNumber
+### Delivery
 
-### CU: Consultar Tracking de un Delivery
+- Realiza el envío de los pedido
+- Mantiene un tracking del pedido
+- Notifica cambios estados (async) para Orders, Stats
+- Permite cancelar una order si no se pudo enviar
+- Candidato ideal para CQRS
 
-**Interfaz REST**  
-`GET /v1/trackings/{deliveryId}`
+### Stats
 
-*Headers*  
-Authorization: Bearer token
+- Mantiene estadísticas de Catalogo, Delivery, Pricing, etc
+- Genera reportes estadísticos y mantiene una minería de información optimizada para consultas.
+- Duplica mucha información de otros microservicios optimizando búsquedas
+- Puede leer la cola rabbit para genera información.
 
-*Response*  
-`200 OK` si el Delivery y su historial de Tracking fueron encontrados exitosamente.
-```json
-{
-  "deliveryId": "123456",
-  "trackingNumber": "TN-123456",
-  "trackingDetails": [
-    {
-      "id": "1",
-      "status": {
-          "name": "IN_PREPARATION"
-      },
-      "location": { 
-        "latitude": -32.889458, 
-        "longitude": -68.845838 
-      }, 
-      "carrierId": null,
-      "timestamp": "2024-11-02 16:00:00.000"
-    },
-    {
-      "id": "2",
-      "status": {
-         "name": "IN_TRANSIT"
-      },
-      "location": { 
-        "latitude": -32.889458, 
-        "longitude": -68.845838 
-      }, 
-      "carrierId": "987654",
-      "timestamp": "2024-11-03 10:30:00.000"
-    }
-  ]
-}
-```
-`404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId o trackingNumber
+### Profile
+
+- Permite a los usuarios mantener sus datos personales, gustos, imagen de perfil, etc.
+
+### Payment
+
+- Procesa los pagos de los usuarios de las compras
+- Notifica el estado del pago (async) para Orders, Stats
+- Puede cancelar una order si no se realiza el pago
+- Mantiene las formas de pago habilitadas por usuario
+
+### Reclamos Sobre Ordenes
+
+- El usuario reclama algo de la orden, permitiendo cancelarla si no se resuelve el reclamo correctamente.
+
+### Wallet
+
+- Es una billetera virtual en el caso que se hayan cobrado ordenes que no se pudieron guardar se generaría un crédito en wallet, que podría usarse como dinero.
+- Event source
+
+### Auth2
+
+- Auth realiza autenticación de usuario, pero no autorización, este modulo permite definir los permisos de los usuarios a los diferentes módulos.
+- Cada modulo define permisos, y con una interfaz unificada expone esos listados de permisos, Auth lee esos permisos y permite administrarles los permisos a los usuarios.
+- Auth maneja un listado de permisos por usuario para diferentes módulos, que los notifica en un servicio interno para que los otros microservicios puedan consultarlo y manejar seguridad.
+
+### User Feed
+
+- Es un modulo que permite a los usuarios comentar sobre los artículos que compraron
+- No tiene mucha interacción, un listado de mensajes de usuarios con comentarios de artículos del catalogo.
+
+### Recommendations
+
+- Basado en Orders genera recomendaciones de artículos que los compradores podrían estar interesados.
+- Notifica las recomendaciones (async) para Mail Notifications
+
+### Questions
+
+- Un modulo que permite realizar consultas sobre artículos de Catalog
+- Notifica (async) para Stats
+
+### Early Buy
+
+- Un modulo que permite anotarse para productos que no tiene stock.
+- Una vez que el producto adquiere stock notifica al usuario de que hay stock.
+- Notifica cuando se debe notificar (async)
+
+### Mail Notifications
+
+- Realiza notificaciones por email, solo manda mails.
+- Lee ciertos canales como Early Buy y Stock Reposition para enviar mails.
+
+### Stock Reposition
+
+- Realiza un análisis del stock y notifica cuando se debe realizar reposición de artículos.
+- Reponer artículos para un portal grande es un tema complejo.
+- Se notifica cuando hay que reponer (async).
+- Automáticamente genera ordenes de compra.
+
+### Audit
+
+- Permite realizar auditorías

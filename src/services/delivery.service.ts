@@ -7,6 +7,7 @@ import { DeliveryDocument } from '@models/entities/delivery';
 import config from '@config/index';
 import mongoose from 'mongoose';
 import { Location } from '@models/entities/tracking';
+import axios from 'axios';
 
 class DeliveryService {
 
@@ -200,6 +201,16 @@ class DeliveryService {
     const delivery = await deliveryRepository.getByTrackingNumber(trackingNumber);
     return delivery;
   }
+
+  async checkOrderExists(orderId: string, token: string): Promise<boolean> {
+   const response = await axios.get(`${config.MS_ORDER_URL}/orders/${orderId}`, {
+    headers: {
+      Authorization: `${token}`
+    }
+   })
+   
+   return response.status === 200
+  } 
 }
 
 export default new DeliveryService();
