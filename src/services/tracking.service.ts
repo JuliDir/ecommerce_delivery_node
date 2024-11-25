@@ -6,6 +6,7 @@ import { Tracking } from '@models/entities/tracking';
 import { Status } from '@dtos/enum/status.enum';
 import { DeliveryDocument } from '@models/entities/delivery';
 import { CreateTracking } from '@dtos/tracking.dto';
+import mongoose from 'mongoose';
 
 class TrackingService {
 
@@ -14,11 +15,21 @@ class TrackingService {
   }
 
   // CU Consulta de tracking de una entrega
-  async getTrackingDetails(deliveryId: string): Promise<DeliveryDTO> {
-    const delivery = await deliveryService.getDeliveryById(deliveryId);
-    const trackings = await trackingRepository.getTrackingsByDeliveryIdSortByTimestampAsc(deliveryId);
+  async getTrackingDetails(deliveryIdOrTrackingNumber: string): Promise<DeliveryDTO> {
+    let delivery: DeliveryDocument | null = null;
+    if (mongoose.Types.ObjectId.isValid(deliveryIdOrTrackingNumber)) {
+      delivery = await deliveryService.getDeliveryById(deliveryIdOrTrackingNumber);
+    } else {
+      delivery = await deliveryService.getDeliveryByTrackingNumber(deliveryIdOrTrackingNumber);
+    }
+
+    if (!delivery) {
+      throw new CustomError('Delivery not found', 404);
+    }
+
+    const trackings = await trackingRepository.getTrackingsByDeliveryIdSortByTimestampAsc(delivery._id as string);
     return {
-      deliveryId,
+      deliveryId: delivery._id as string,
       trackingNumber: delivery.trackingNumber,
       trackingDetails: trackings
     };

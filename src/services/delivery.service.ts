@@ -195,6 +195,11 @@ class DeliveryService {
       return newTracking;
     
   }
+
+  async getDeliveryByTrackingNumber(trackingNumber: string) {
+    const delivery = await deliveryRepository.getByTrackingNumber(trackingNumber);
+    return delivery;
+  }
 }
 
 export default new DeliveryService();

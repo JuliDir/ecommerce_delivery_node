@@ -17,7 +17,6 @@
 - **Precondición**: La orden está validada (estado `VALIDATED` en Orders).
 - **Camino normal**:
   - Orders envía un mensaje ásincrono con el id de la orden y la dirección de envío a Delivery.
-  - Delivery busca la orden por su orderId en el microservicio orders
   - Se crea un objeto `Delivery` con: 
     - id: generado
     - orderId: id proveniente del mensaje de Orders
@@ -32,8 +31,8 @@
     - location: { "latitude": -32.889458, "longitude": -68.845838 } (ubicación inicial: Mendoza)
     - timestamp: fecha actual
   - Se llama al CU `Actualizar proyección de un Delivery`, pasandole el delivery recien creado
+  - Delivery envía un mensaje ásincrono notificando la creación del delivery a los demás microservicios.
 - **Caminos alternativos**:
-  - Si no existe la orden se responde con un error
   - Si no se envía una dirección de envío se responde con un error
   - Si no se puede crear la entrega se responde con un error
 
@@ -79,7 +78,7 @@
   - Si el último Tracking del delivery no se encuentra en estado `NEAR_DESTIN` se responderá con un error.
 
 #### CU: Entrega fallida
-- **Precondición**: El Delivery se encuentra en estado `NEAR_DESTIN`.
+- **Precondición**: El Delivery debe existir.
 - **Camino normal**:
   - Se busca el Delivery y el Tracking asociado a la misma (historico de estados) 
   - Se busca el ultimo Tracking para validar el estado del delivery
@@ -95,7 +94,7 @@
   - Orders actualiza el estado de la orden a `FAILED`
 - **Caminos alternativos**:
   - Si no se encuentra el Delivery se responderá con un error.
-  - Si el último Tracking del delivery no se encuentra en estado `NEAR_DESTIN` se responderá con un error.
+  - Si el último Tracking del delivery se encuentra en estado `COMPLETED` o `FAILED` se responderá con un error.
 
 #### CU: Consultar Delivery
 - **Precondición**: El Delivery debe existir.
@@ -256,6 +255,8 @@ Authorization: Bearer token
 
 `404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId
 
+`400 NOT FOUND` si estado del delivery no se encuentra en `NEAR_DESTIN`
+
 **Interfaz asincronica (rabbit)** 
 
 Responde con la entrega del delivery en fanout `delivery_notification_queue`
@@ -293,6 +294,8 @@ Authorization: Bearer token
 }
 ```
 `404 NOT FOUND` si no se encuentra un Delivery con ese deliveryId
+
+`400 BAD REQUEST` si el estado de la entrega se encuentra en `COMPLETED` o `FAILED`
 
 **Interfaz asincronica (rabbit)** 
 

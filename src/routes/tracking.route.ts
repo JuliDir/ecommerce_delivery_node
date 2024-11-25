@@ -12,7 +12,7 @@ class TrackingRoute {
 
   createRoutes(): void {
     this.router.post('/trackings', authMiddleware, this.updateTracking.bind(this));
-    this.router.get('/trackings/:deliveryId', authMiddleware, this.getTrackingDetails.bind(this));
+    this.router.get('/trackings/:deliveryIdOrTrackingNumber', authMiddleware, this.getTrackingDetails.bind(this));
   }
 
   private updateTracking(req: Request, res: Response, next: NextFunction) {
@@ -27,10 +27,10 @@ class TrackingRoute {
 
   private getTrackingDetails(req: Request, res: Response, next: NextFunction) {
     const {
-      params: { deliveryId },
+      params: { deliveryIdOrTrackingNumber },
     } = req as any;
     trackingService
-      .getTrackingDetails(deliveryId)
+      .getTrackingDetails(deliveryIdOrTrackingNumber)
       .then((response) => res.json(response))
       .catch((err) => next(err));
   }
