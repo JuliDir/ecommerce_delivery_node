@@ -7,7 +7,8 @@
 **Delivery**
 - id: `string`
 - status: `Status` 
-- orderId: `number`
+- orderId: `string`
+- userId: `string`
 - shippingAddress: `string` 
 - trackingNumber: `string`
 - createdAt: `Date` 
@@ -38,6 +39,7 @@ Recibe para crear la entrega en direct `order_request_queue`
 ```json
 {
 	"orderId": "123456",
+  "userId": "asdl1j23kasdf",
   "shippingAdress": "Calle Antonelli 111, Guaymallen",
 }
 ```
@@ -62,6 +64,14 @@ Si la creacion del delivery no fue exitosa responde en fanout `delivery_notifica
   "message": "Delivery failed"
 }
 ```
+
+`400 BAD REQUEST` si ya existe un delivery asociado a ese orderId se responde con un error
+
+`400 BAD REQUEST` si shippingAdress es null
+
+`400 BAD REQUEST` si orderId es null
+
+`400 BAD REQUEST` si userId es null
 
 ### CU: Actualización de tracking de una entrega
 
@@ -204,6 +214,7 @@ Authorization: Bearer token
 {
   "id": "123456",
   "orderId": "123456",
+  "userId": "asdkfp12i3pa",
   "shippingAdress": "Calle Antonelli 111, Guaymallen",
   "trackingNumber": "TN-123456",
   "status": {

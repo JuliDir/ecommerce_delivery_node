@@ -62,11 +62,11 @@ export class Rabbit {
   private async handleOrderDeliveryRequest(msg: amqp.ConsumeMessage | null): Promise<void> {
     if (!msg) return;
 
-    const { orderId, shippingAddress } = JSON.parse(msg.content.toString());
+    const { orderId, userId, shippingAddress } = JSON.parse(msg.content.toString());
     logger.info(`Received delivery request for order: ${orderId}`);
     
     try {
-      const delivery = await deliveryService.startDelivery(orderId, shippingAddress);
+      const delivery = await deliveryService.startDelivery(orderId, userId, shippingAddress);
       logger.info(`Delivery started for order: ${orderId}, tracking number: ${delivery.trackingNumber}`);
     } catch (error) {
       Rabbit.getInstance().sendMessage({

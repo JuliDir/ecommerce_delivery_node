@@ -13,6 +13,12 @@ class DeliveryRepository {
     });
   }
 
+  async getAllByOrderId(orderId: string) {
+    return ModelDelivery.find({
+      orderId,
+    });
+  }
+
   async create(payload: Delivery) {
     return ModelDelivery.create(payload);
   }

@@ -12,13 +12,16 @@ import axios from 'axios';
 class DeliveryService {
 
   // CU Iniciar entrega
-  async startDelivery(orderId: string, shippingAddress: string) {
-    if (!orderId) {
-      throw new CustomError('Order ID is required', 400);
-    }
+  async startDelivery(orderId: string, userId: string, shippingAddress: string) {
 
-    if (!shippingAddress) {
-      throw new CustomError('Shipping address is required', 400);
+    // Validaciones
+    if (!userId) throw new CustomError('User ID is required', 400);
+    if (!orderId) throw new CustomError('Order ID is required', 400);
+    if (!shippingAddress) throw new CustomError('Shipping address is required', 400);
+
+    const deliveries = await deliveryRepository.getAllByOrderId(orderId);
+    if (deliveries.length > 0) {
+      throw new CustomError('Delivery already started for this order', 400);
     }
 
     const delivery = await deliveryRepository.create({
@@ -211,6 +214,8 @@ class DeliveryService {
    
    return response.status === 200
   } 
+
+
 }
 
 export default new DeliveryService();
