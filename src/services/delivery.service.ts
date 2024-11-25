@@ -125,7 +125,7 @@ class DeliveryService {
     // Creo el nuevo tracking
     const newTracking = await trackingService.create({
       deliveryId,
-      carrierId: carrierId,
+      carrierId,
       status: Status.COMPLETED,
       location,
       timestamp: new Date()
@@ -176,7 +176,7 @@ class DeliveryService {
       // Creo el nuevo tracking
       const newTracking = await trackingService.create({
         deliveryId,
-        carrierId: carrierId,
+        carrierId,
         status: Status.FAILED,
         location,
         timestamp: new Date()
