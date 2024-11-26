@@ -65,6 +65,12 @@ class TrackingService {
         } else {
           throw new CustomError('Invalid status, the next status must be IN_TRANSIT', 400);
         }
+      case Status.FAILED:
+        if (payload.status === Status.IN_TRANSIT) {
+          break;
+        } else {
+          throw new CustomError('Invalid status, the next status must be IN_TRANSIT', 400);
+        }
       case Status.IN_TRANSIT:
         if (payload.status === Status.IN_TRANSIT || payload.status === Status.NEAR_DESTIN) {
           break;

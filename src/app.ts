@@ -35,29 +35,6 @@ app.use(
   })
 );
 
-// Validate requests against defined OpenApi spec
-app.use(
-  middleware({
-    apiSpec: config.DIR_SWAGGER || '',
-    validateResponses: false,
-    validateRequests: true,
-    validateSecurity: true,
-  })
-);
-// Serve Swagger UI when not in production
-if (config.NODE_ENV !== 'production') {
-  const swaggerDocument = YAML.load(config.DIR_SWAGGER || '');
-  app.use(
-    '/api-docs',
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerDocument, {
-      swaggerOptions: {
-        persistAuthorization: true,
-      },
-    })
-  );
-}
-
 DatabaseConnection.getInstance();
 
 // API routes prefix

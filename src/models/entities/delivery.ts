@@ -6,6 +6,7 @@ export interface DeliveryDocument extends Delivery, Document {}
 export interface Delivery {
   status: Status;
   orderId: string;
+  userId: string;
   shippingAddress: string;
   trackingNumber: string;
   createdAt: Date;

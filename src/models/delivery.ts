@@ -5,6 +5,7 @@ export const DeliverySchema = new Schema(
   {
     status: { type: String, required: true, enum: ['IN_PREPARATION', 'IN_TRANSITION', 'NEAR_DESTIN','COMPLETED', 'FAILED'] },
     orderId: { type: String, required: true },
+    userId: { type: String, required: true },
     shippingAddress: { type: String, required: true },
     trackingNumber: { type: String, required: true },
   },

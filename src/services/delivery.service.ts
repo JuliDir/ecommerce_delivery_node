@@ -26,6 +26,7 @@ class DeliveryService {
 
     const delivery = await deliveryRepository.create({
       orderId,
+      userId,
       shippingAddress,
       trackingNumber: `TN-${orderId}`,
       createdAt: new Date(),

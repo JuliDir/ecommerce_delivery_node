@@ -10,8 +10,6 @@ import logger from './src/utils/logger';
   try {
     // Remove current build
     await remove('./dist/');
-    // Copy config files
-    await copy('./src/config/docs/swagger.yml', './dist/src/config/docs/swagger.yml');
     // Compile project
     await exec('tsc --project ./', './');
   } catch (err) {
